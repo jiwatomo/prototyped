@@ -1,0 +1,73 @@
+flowchart TD
+  subgraph TRIG["Pemicu di UI"]
+    T1["Selesai Kirim Profil (redirect app.html)"]
+    T2["Simpan fakta di my-profile.html"]
+    T3["Buka / reload app.html"]
+    T4["Tombol Hitung ulang"]
+  end
+
+  subgraph FE["Frontend"]
+    F0["load(): GET /api/profile/{username}"]
+    F0a{"profile.submitted?"}
+    FX["redirect profile.html"]
+    F2["GET /api/recommendations/{username}"]
+    F3["renderRecommendations(payload)"]
+    F4["Kartu utama (selain not_eligible)"]
+    F5["Section Belum cocok (not_eligible)"]
+    F6["Section Lagi hot (paling atas)"]
+    F7["Section Baru ditambahkan (paling bawah)"]
+  end
+
+  subgraph BE["Backend"]
+    B1["require_self_or_admin + sesi"]
+    B1x["403 forbidden / 401"]
+    B2["Ambil user_tags status confirmed"]
+    B3["Ambil scholarships verified + scholarship_tags approved"]
+    M1["matching_service.match_tags()"]
+    M1a["Filter konteks kompatibel"]
+    M1b["Cocokkan tag_id atau leluhur/turunan"]
+    M1c["Anti hitung ganda anak-leluhur"]
+    M1d["skor = bobot cocok / bobot komparabel x 100"]
+    E1["eligibility_service.evaluate()"]
+    E1a["Evaluasi operator per requirement"]
+    E1b["Gabung grup AND / OR"]
+    E1c["eligible / potentially_eligible / not_eligible"]
+    A1["build_entry: skor, status, requirements, explanation"]
+    S1["Urut: kelayakan lalu skor menurun"]
+    H1["hot: open/upcoming, bookmark, deadline, skor"]
+    R1["recent: created_at terbaru"]
+    P["Response: results, hot, recent, counts, warnings"]
+  end
+
+  T1 --> F0
+  T2 --> F0
+  T3 --> F0
+  T4 --> F2
+
+  F0 --> F0a
+  F0a -->|"tidak"| FX
+  F0a -->|"ya"| F2
+
+  F2 --> B1
+  B1 -->|"gagal"| B1x
+  B1 -->|"lolos"| B2
+  B1 -->|"lolos"| B3
+
+  B2 --> M1
+  B3 --> M1
+  M1 --> M1a --> M1b --> M1c --> M1d
+
+  B3 --> E1
+  E1 --> E1a --> E1b --> E1c
+
+  M1d --> A1
+  E1c --> A1
+  A1 --> S1
+  S1 --> H1 --> P
+  S1 --> R1 --> P
+
+  P --> F3
+  F3 --> F4
+  F3 --> F5
+  F3 --> F6
+  F3 --> F7

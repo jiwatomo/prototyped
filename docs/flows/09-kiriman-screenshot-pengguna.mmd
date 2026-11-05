@@ -1,0 +1,12 @@
+flowchart TD
+  A["POST /api/submissions (multipart)"] --> B{"Role = student?"}
+  B -->|"tidak"| B1["403 forbidden"]
+  B -->|"ya"| C{"MIME PNG/JPEG/WEBP dan <= 5 MB?"}
+  C -->|"tidak"| C1["422 invalid_image_type / 413 file_too_large"]
+  C -->|"ya"| D["Simpan user_scholarship_submissions status=pending"]
+  D --> E["Admin: GET /api/admin/submissions?status=pending"]
+  E --> F["GET /api/admin/submissions/{id}/image (Bearer admin)"]
+  F --> G{"Admin membaca gambar (tanpa OCR)"}
+  G -->|"valid"| H["Tambah beasiswa manual di admin-new-scholarship"]
+  H --> I["POST .../process {status: processed}"]
+  G -->|"tidak"| J["POST .../process {status: rejected, reason}"]

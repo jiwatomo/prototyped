@@ -1,0 +1,7 @@
+stateDiagram-v2
+  [*] --> pending_verification : ekstraksi AI selesai / input manual
+  pending_verification --> verified : approve - butuh nama dan sumber
+  pending_verification --> rejected : reject - wajib alasan
+  verified --> rejected : reject - wajib alasan
+  rejected --> verified : approve ulang
+  verified --> [*] : tampil di katalog pengguna

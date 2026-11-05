@@ -1,0 +1,22 @@
+flowchart TD
+  A["GET /api/recommendations/{u}"] --> B{"u = pemilik atau admin?"}
+  B -->|"tidak"| B1["403 forbidden"]
+  B -->|"ya"| C["Ambil user_tags confirmed"]
+  C --> D["Ambil scholarships verified + scholarship_tags approved"]
+  D --> E["Matching Engine"]
+  E --> E1["Filter konteks kompatibel"]
+  E1 --> E2["Cocokkan tag_id / leluhur-turunan"]
+  E2 --> E3["Hindari hitung ganda anak-leluhur"]
+  E3 --> E4["skor = bobot cocok / bobot komparabel x 100"]
+  D --> F["Eligibility Engine"]
+  F --> F1["Evaluasi operator per requirement"]
+  F1 --> F2["Gabung grup AND / OR"]
+  F2 --> F3["Status: met / not_met / unknown"]
+  F3 --> F4["eligible / potentially_eligible / not_eligible"]
+  E4 --> G["Rakit entri + penjelasan deterministik"]
+  F4 --> G
+  G --> H["Urut: status kelayakan, lalu skor turun"]
+  H --> I["Hot: open/upcoming, bookmark, deadline, skor"]
+  H --> J["Recent: created_at terbaru"]
+  I --> K["Response {results, hot, recent, counts, warnings}"]
+  J --> K

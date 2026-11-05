@@ -1,0 +1,38 @@
+"""Model package: importing this registers every table on Base.metadata."""
+from app.models.entities import (  # noqa: F401
+    AuthSession,
+    ExtractionJob,
+    Scholarship,
+    ScholarshipRequirement,
+    ScholarshipRequirementGroup,
+    ScholarshipSource,
+    ScholarshipTag,
+    ScholarshipVerification,
+    StudentProfile,
+    Tag,
+    TagAlias,
+    TagCategory,
+    User,
+    UserScholarshipBookmark,
+    UserScholarshipSubmission,
+    UserTag,
+)
+
+__all__ = [
+    "AuthSession",
+    "ExtractionJob",
+    "Scholarship",
+    "ScholarshipRequirement",
+    "ScholarshipRequirementGroup",
+    "ScholarshipSource",
+    "ScholarshipTag",
+    "ScholarshipVerification",
+    "StudentProfile",
+    "Tag",
+    "TagAlias",
+    "TagCategory",
+    "User",
+    "UserScholarshipBookmark",
+    "UserScholarshipSubmission",
+    "UserTag",
+]

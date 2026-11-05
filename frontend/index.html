@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BeasiswaMatch — Prototipe Rekomendasi Beasiswa</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="landing-body">
+  <header class="landing-header">
+    <div class="brand">
+      <h1>BeasiswaMatch</h1>
+      <p class="muted small">Prototipe pencarian dan rekomendasi beasiswa</p>
+    </div>
+    <nav class="header-right" aria-label="Masuk">
+      <a class="btn" href="login.html?role=user">Masuk Pengguna</a>
+      <a class="btn primary" href="login.html?role=admin">Masuk Admin</a>
+    </nav>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <main class="landing">
+    <section class="hero">
+      <span class="badge badge-info">Prototipe demo lokal</span>
+      <h2>Ceritakan dirimu sekali.<br />Temukan beasiswa yang benar-benar cocok.</h2>
+      <p class="lead">
+        Tulis profil dalam bahasa alami. AI mengekstrak fakta, kamu yang mengonfirmasi, lalu
+        sistem mencocokkan persyaratan secara deterministik dan menunjukkan
+        persyaratan mana yang sudah terpenuhi, belum, atau belum diketahui.
+      </p>
+      <div class="row">
+        <a class="btn primary large" href="login.html?role=user">Masuk sebagai Pengguna</a>
+        <a class="btn large" href="login.html?role=admin">Masuk sebagai Admin</a>
+      </div>
+      <p class="hint">Akun demo: <code>demo-student / student123</code> · <code>demo-admin / admin123</code></p>
+    </section>
+
+    <section id="resume-banner" class="card resume" hidden>
+      <div>
+        <strong>Kamu masih punya sesi aktif</strong>
+        <p class="muted small" id="resume-text"></p>
+      </div>
+      <div class="row">
+        <a class="btn primary" id="resume-link" href="app.html">Lanjutkan sesi</a>
+        <button class="btn" id="resume-logout" type="button">Keluar</button>
+      </div>
+    </section>
+
+    <section class="role-grid">
+      <article class="card role-card">
+        <span class="badge badge-info">Mode Pengguna</span>
+        <h3>Untuk siswa &amp; mahasiswa</h3>
+        <ul class="feature-list">
+          <li>Deskripsi bebas, tanpa formulir panjang</li>
+          <li>Tinjau fakta sebelum dipakai</li>
+          <li>Skor relevansi dan status kelayakan terpisah</li>
+          <li>Requirement Gap Analysis per persyaratan</li>
+        </ul>
+        <a class="btn primary" href="login.html?role=user">Masuk sebagai Pengguna</a>
+      </article>
+
+      <article class="card role-card">
+        <span class="badge badge-warn">Mode Admin</span>
+        <h3>Untuk pengelola katalog</h3>
+        <ul class="feature-list">
+          <li>Ekstraksi beasiswa dari URL, teks, atau PDF</li>
+          <li>Edit hasil, setujui atau tolak tag</li>
+          <li>Verifikasi sebelum tampil di katalog</li>
+          <li>Riwayat keputusan tersimpan</li>
+        </ul>
+        <a class="btn primary" href="login.html?role=admin">Masuk sebagai Admin</a>
+      </article>
+    </section>
+
+    <section class="card how">
+      <h2>Bagaimana cara kerjanya</h2>
+      <ol class="steps">
+        <li><strong>Deskripsi bebas.</strong> Pengguna menulis pendidikan, jurusan, IPK, prestasi, minat.</li>
+        <li><strong>AI mengekstrak.</strong> Fakta disarankan beserta kutipan bukti — bukan keputusan akhir.</li>
+        <li><strong>Konfirmasi manusia.</strong> Pengguna mengoreksi fakta lalu mengirim profil.</li>
+        <li><strong>Matching deterministik.</strong> Hanya fakta terkonfirmasi yang dipakai; skor relevansi bukan peluang diterima.</li>
+        <li><strong>Admin memverifikasi.</strong> Hanya beasiswa berstatus verified yang masuk rekomendasi utama.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="landing-footer">
+    <p class="muted small">
+      Prototipe untuk demonstrasi. Seluruh beasiswa adalah data sintetis; status “verified” hanya
+      berarti siap dipakai dalam demo. Login demo memakai sesi lokal, bukan autentikasi produksi.
+    </p>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/landing.js"></script>
+</body>
+</html>

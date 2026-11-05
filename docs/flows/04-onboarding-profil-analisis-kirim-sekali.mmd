@@ -1,0 +1,17 @@
+flowchart TD
+  A["POST /api/profile/{u}/analyze"] --> B{"Deskripsi kosong atau lebih dari 30000 karakter?"}
+  B -->|"ya"| B1["422 empty_description / description_too_long"]
+  B -->|"tidak"| C{"profile_submitted_at sudah terisi?"}
+  C -->|"ya"| C1["409 already_submitted"]
+  C -->|"tidak"| D["Muat Master Tag aktif + alias"]
+  D --> E["AIProvider.extract_user_profile()"]
+  E --> F["Validasi Pydantic + whitelist slug + context"]
+  F --> G["Simpan extracted_facts_json + analysis_id, status analyzed"]
+  G --> H["UI hanya menampilkan FAKTA (tag disembunyikan)"]
+
+  H --> I["POST /api/profile/{u}/confirm (tags kosong dari UI)"]
+  I --> J{"analysis_id == latest dan belum dikirim?"}
+  J -->|"tidak"| J1["409 stale_analysis / already_confirmed"]
+  J -->|"ya"| K["Auto-confirm saran AI + tag turunan fakta"]
+  K --> L["Tulis fakta terkonfirmasi, set profile_submitted_at"]
+  L --> M["302 di frontend ke app.html"]

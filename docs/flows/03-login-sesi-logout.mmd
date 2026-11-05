@@ -1,0 +1,27 @@
+sequenceDiagram
+  participant U as Browser
+  participant A as /api/auth
+  participant DB as auth_sessions
+  participant S as Service
+
+  U->>A: POST /auth/login dengan kredensial
+  A->>S: authenticate()
+  S->>DB: cari user + verifikasi PBKDF2
+  alt kredensial salah
+    S-->>U: 401 invalid_credentials
+  else valid
+    S->>DB: simpan SHA-256(token), expires_at
+    S-->>U: 200 {token, role, expires_at}
+  end
+
+  U->>A: GET /auth/session (Bearer)
+  A->>DB: lookup token_hash
+  alt revoked / expired
+    A-->>U: 401
+  else aktif
+    A-->>U: 200 {user, role, expires_at}
+  end
+
+  U->>A: POST /auth/logout (Bearer)
+  A->>DB: set revoked_at
+  A-->>U: 200 {revoked: true}

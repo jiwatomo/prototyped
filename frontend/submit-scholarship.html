@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kirim Info Beasiswa — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="student">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="app.html">← Rekomendasi</a>
+      <h1>Kirim info beasiswa</h1>
+      <p class="muted small">Cukup unggah screenshot — admin yang memeriksa dan menambahkan.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <main class="container stack-narrow stack">
+    <section class="card">
+      <h2>Unggah screenshot</h2>
+      <p class="hint">
+        Format PNG, JPEG, atau WEBP, maksimal 5 MB. Kiriman masuk ke antrean konfirmasi admin;
+        tidak ada OCR otomatis, jadi admin membaca gambarnya secara manual.
+      </p>
+
+      <label for="submission-file">Screenshot beasiswa</label>
+      <input id="submission-file" type="file" accept="image/png,image/jpeg,image/webp" />
+
+      <div id="submission-preview-wrap" class="submission-preview" hidden>
+        <img id="submission-preview" alt="Pratinjau screenshot" />
+      </div>
+
+      <label for="submission-note">Catatan (opsional)</label>
+      <textarea id="submission-note" rows="3" placeholder="Contoh: info dari grup kampus, deadline minggu depan"></textarea>
+
+      <div class="row">
+        <button id="btn-submit-scholarship" class="btn primary" type="button">Kirim ke admin</button>
+        <span id="submission-status" class="muted small" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row space-between">
+        <h2>Kiriman saya</h2>
+        <button id="btn-reload-submissions" class="btn tiny" type="button">Muat ulang</button>
+      </div>
+      <ul id="my-submissions" class="tag-list compact"></ul>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/submit-scholarship.js"></script>
+</body>
+</html>

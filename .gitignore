@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Local database and secrets
+backend/app.db
+backend/app.db-journal
+.env
+backend/.env
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/

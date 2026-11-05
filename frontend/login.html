@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Masuk — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="landing-body">
+  <header class="landing-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Masuk</h1>
+      <p class="muted small">Pilih mode demo, lalu gunakan akun demo yang tersedia.</p>
+    </div>
+    <nav class="header-right" aria-label="Mode">
+      <a id="nav-user" class="btn" href="login.html?role=user">Pengguna</a>
+      <a id="nav-admin" class="btn" href="login.html?role=admin">Admin</a>
+    </nav>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <main class="auth-main">
+    <section class="card auth-card">
+      <div class="role-switch" role="tablist" aria-label="Peran">
+        <button id="role-user" class="role-option is-active" type="button">Pengguna</button>
+        <button id="role-admin" class="role-option" type="button">Admin</button>
+      </div>
+
+      <h2 id="login-title">Masuk sebagai Pengguna</h2>
+      <p class="muted small" id="login-subtitle">
+        Mode pengguna dipakai untuk mengisi profil dan melihat rekomendasi.
+      </p>
+
+      <form id="login-form" novalidate>
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required />
+
+        <label for="password">Kata sandi</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
+
+        <p class="form-error" id="login-error" role="alert" hidden></p>
+
+        <button id="btn-login" class="btn primary full" type="submit">Masuk</button>
+      </form>
+
+      <div class="demo-cred">
+        <strong>Akun demo</strong>
+        <p class="muted small">
+          Pengguna: <code>demo-student</code> / <code>student123</code><br />
+          Admin: <code>demo-admin</code> / <code>admin123</code>
+        </p>
+        <button id="btn-fill" class="btn tiny" type="button">Isi otomatis</button>
+      </div>
+
+      <p class="hint">
+        Login ini hanya simulasi lokal: sesi disimpan di peramban dan tidak menggantikan
+        autentikasi produksi (tanpa SSO, tanpa reset kata sandi).
+      </p>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

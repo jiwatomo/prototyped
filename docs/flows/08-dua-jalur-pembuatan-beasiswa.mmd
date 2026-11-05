@@ -1,0 +1,26 @@
+flowchart TD
+  subgraph EX["Ekstraksi AI"]
+    A1["POST /api/admin/extractions"] --> A2{"Sumber?"}
+    A2 -->|"URL"| A3["Fetch + strip HTML"]
+    A2 -->|"teks"| A4["Validasi panjang"]
+    A2 -->|"PDF"| A5["pypdf; tolak bila tanpa teks"]
+    A3 --> A6["AIProvider.extract_scholarship()"]
+    A4 --> A6
+    A5 --> A6
+    A6 --> A7["Buat job + scholarship pending + tag pending + requirements"]
+  end
+
+  subgraph MAN["Input manual"]
+    B1["POST /api/admin/scholarships"] --> B2{"Tag dikenal & context valid?"}
+    B2 -->|"tidak"| B3["422 unknown_tag / invalid context"]
+    B2 -->|"ya"| B4["Job manual + scholarship pending + tag/requirements"]
+  end
+
+  A7 --> C["Antrean admin /api/admin/scholarships/pending"]
+  B4 --> C
+  C --> D["GET /api/admin/scholarships/{id}"]
+  D --> E["PATCH: field, keputusan tag, requirements"]
+  E --> F{"Keputusan"}
+  F -->|"approve"| G["verified + tag non-rejected approved + riwayat"]
+  F -->|"reject"| H["rejected + alasan + riwayat"]
+  G --> I["Katalog pengguna + rekomendasi"]

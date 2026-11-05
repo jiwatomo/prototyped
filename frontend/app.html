@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rekomendasi — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="student">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Rekomendasi untukmu</h1>
+      <p class="muted small">Berdasarkan fakta yang sudah kamu kirim.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <main class="container stack">
+    <section class="stack" id="hot-section">
+      <div class="row space-between">
+        <h2>Lagi hot</h2>
+        <span class="muted small">deadline terdekat &amp; paling banyak disimpan</span>
+      </div>
+      <div id="hot-list" class="cards"></div>
+    </section>
+
+    <section class="card submit-cta">
+      <div>
+        <strong>Punya screenshot info beasiswa?</strong>
+        <p class="muted small">Kirim gambarnya; admin meninjau sebelum masuk katalog.</p>
+      </div>
+      <a class="btn primary" href="submit-scholarship.html">Kirim screenshot</a>
+    </section>
+
+    <section id="recommendations" class="stack">
+      <div class="row space-between">
+        <h2>Rekomendasi beasiswa</h2>
+        <div class="row" style="margin-top:0">
+          <a class="btn tiny" href="my-profile.html">Profil saya</a>
+          <button id="btn-recompute" class="btn tiny" type="button">Hitung ulang</button>
+        </div>
+      </div>
+      <div id="rec-counts" class="muted small"></div>
+      <div id="rec-warnings" class="warnings"></div>
+      <div id="rec-list" class="cards"></div>
+      <details id="rec-rejected-wrap" class="card" open>
+        <summary><strong>Belum cocok</strong> — tidak memenuhi persyaratan wajib</summary>
+        <div id="rec-rejected" class="cards"></div>
+      </details>
+    </section>
+
+    <section class="stack" id="recent-section">
+      <div class="row space-between">
+        <h2>Baru ditambahkan</h2>
+        <span class="muted small">katalog terbaru</span>
+      </div>
+      <div id="recent-list" class="cards"></div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

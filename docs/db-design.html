@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Database Design — BeasiswaMatch</title>
+<style>
+:root { --bg:#f5f6f8; --surface:#fff; --border:#d8dce3; --text:#1d2430; --muted:#5d6675;
+        --primary:#1f5fa8; --pk:#8a5a09; --fk:#17487f; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text);
+       font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif; line-height:1.5; }
+.wrap { max-width:1180px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+h1 { font-size:1.6rem; margin:0 0 .3rem; letter-spacing:-.01em; }
+h2 { font-size:1.1rem; margin:2.2rem 0 .6rem; }
+h3 { font-size:1rem; margin:1.4rem 0 .4rem; }
+p { margin:.3rem 0 .8rem; }
+.muted { color:var(--muted); }
+.small { font-size:.82rem; }
+.banner { background:#fff6d6; color:#6b4b00; border:1px solid #ecd9a0; border-radius:8px;
+          padding:.55rem .8rem; font-size:.84rem; margin:1rem 0 1.6rem; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+        padding:1rem 1.1rem; margin:.8rem 0; box-shadow:0 1px 2px rgba(20,30,45,.06); }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:.84rem; background:var(--surface); }
+caption { caption-side:top; text-align:left; font-weight:700; padding:.5rem .2rem; }
+th, td { border-bottom:1px solid var(--border); padding:.4rem .55rem; text-align:left; vertical-align:top; }
+th { background:#eef2f7; font-size:.74rem; text-transform:uppercase; letter-spacing:.04em; color:#39424f; }
+tbody tr:hover { background:#fafbfd; }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.8rem;
+       background:#eef2f7; padding:.05rem .3rem; border-radius:4px; }
+.tag { display:inline-block; padding:.05rem .4rem; border-radius:999px; font-size:.7rem;
+       font-weight:700; margin-right:.25rem; }
+.pk { background:#fdf1dc; color:var(--pk); }
+.fk { background:#e4eefb; color:var(--fk); }
+.uq { background:#e4f4e8; color:#1c6b34; }
+.null { color:#8a5a09; font-weight:600; }
+.yes { color:#1c6b34; }
+.foot { margin-top:2.5rem; color:var(--muted); font-size:.8rem; border-top:1px solid var(--border); padding-top:.8rem; }
+@media print { body { background:#fff; } .card { box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Database Design — BeasiswaMatch</h1>
+  <p class="muted small">SQLite · SQLAlchemy 2.x · UUID string · dibuat 05 November 2026 17:19</p>
+
+  <div class="banner">
+    DATA DEMO SINTETIS — skema ini untuk prototipe. Kolom jumlah baris adalah snapshot database lokal saat dokumen dibuat.
+  </div>
+
+  <h2>Ringkasan tabel</h2>
+  <div class="table-wrap card">
+    <table>
+      <thead><tr><th>Tabel</th><th>Fungsi</th><th>Kolom</th><th>Baris</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>auth_sessions</code></td>
+          <td>Sesi login opaque; hanya SHA-256 token yang disimpan, dengan masa berlaku dan revokasi.</td>
+          <td class="small">8</td>
+          <td class="small">20</td>
+        </tr>
+        <tr>
+          <td><code>extraction_jobs</code></td>
+          <td>Riwayat ekstraksi (AI maupun manual): sumber, status, hasil JSON, metadata provider.</td>
+          <td class="small">17</td>
+          <td class="small">1</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_requirement_groups</code></td>
+          <td>Kelompok persyaratan dengan operator AND/OR dan flag wajib/opsional.</td>
+          <td class="small">5</td>
+          <td class="small">6</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_requirements</code></td>
+          <td>Aturan persyaratan terstruktur: field/operator/nilai atau tag.</td>
+          <td class="small">10</td>
+          <td class="small">9</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_sources</code></td>
+          <td>Sumber beasiswa: URL, teks, PDF, atau input manual, terkait job ekstraksi.</td>
+          <td class="small">7</td>
+          <td class="small">4</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_tags</code></td>
+          <td>Relasi beasiswa–tag: konteks, status review admin, bobot, bukti.</td>
+          <td class="small">13</td>
+          <td class="small">14</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_verifications</code></td>
+          <td>Jejak keputusan admin: approved/rejected beserta alasan.</td>
+          <td class="small">7</td>
+          <td class="small">0</td>
+        </tr>
+        <tr>
+          <td><code>scholarships</code></td>
+          <td>Data beasiswa dan status verifikasi (status pendaftaran dihitung dari tanggal).</td>
+          <td class="small">13</td>
+          <td class="small">4</td>
+        </tr>
+        <tr>
+          <td><code>student_profiles</code></td>
+          <td>Deskripsi asli, hasil analisis sementara, fakta terstruktur terkonfirmasi, dan penanda kirim sekali.</td>
+          <td class="small">19</td>
+          <td class="small">3</td>
+        </tr>
+        <tr>
+          <td><code>tag_aliases</code></td>
+          <td>Sinonim/variasi bahasa yang dinormalisasi ke slug resmi.</td>
+          <td class="small">4</td>
+          <td class="small">8</td>
+        </tr>
+        <tr>
+          <td><code>tag_categories</code></td>
+          <td>Kategori induk Universal Master Tag (14 kategori seed).</td>
+          <td class="small">3</td>
+          <td class="small">14</td>
+        </tr>
+        <tr>
+          <td><code>tags</code></td>
+          <td>Master Tag tunggal untuk pengguna dan beasiswa; slug unik, hierarki via parent_id.</td>
+          <td class="small">9</td>
+          <td class="small">71</td>
+        </tr>
+        <tr>
+          <td><code>user_scholarship_bookmarks</code></td>
+          <td>Bookmark pengguna (skema siap; UI belum memakai).</td>
+          <td class="small">4</td>
+          <td class="small">0</td>
+        </tr>
+        <tr>
+          <td><code>user_scholarship_submissions</code></td>
+          <td>Screenshot beasiswa kiriman pengguna untuk antrean verifikasi admin.</td>
+          <td class="small">11</td>
+          <td class="small">1</td>
+        </tr>
+        <tr>
+          <td><code>user_tags</code></td>
+          <td>Relasi pengguna–tag: konteks, sumber, confidence, status konfirmasi, bobot, bukti.</td>
+          <td class="small">12</td>
+          <td class="small">19</td>
+        </tr>
+        <tr>
+          <td><code>users</code></td>
+          <td>Akun demo: pengguna dan admin, termasuk hash kata sandi.</td>
+          <td class="small">7</td>
+          <td class="small">4</td>
+        </tr></tbody>
+    </table>
+  </div>
+
+  <h2>Detail kolom</h2>
+  
+        <section class="card">
+          <h3><code>auth_sessions</code></h3>
+          <p class="small muted">Sesi login opaque; hanya SHA-256 token yang disimpan, dengan masa berlaku dan revokasi.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>token_hash</code></td>
+                <td class="small">VARCHAR(64)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag uq">UQ</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">SHA-256 token sesi; token asli hanya di klien.</td>
+              </tr>
+              <tr>
+                <td><code>user_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>users.id</code></td>
+                <td class="small">Pemilik data.</td>
+              </tr>
+              <tr>
+                <td><code>role</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>last_seen_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>expires_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Akhir masa berlaku sesi.</td>
+              </tr>
+              <tr>
+                <td><code>revoked_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Diisi saat logout / reset password.</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>extraction_jobs</code></h3>
+          <p class="small muted">Riwayat ekstraksi (AI maupun manual): sumber, status, hasil JSON, metadata provider.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>source_type</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>source_url</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>source_text</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>status</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Status proses (job/sesi/kiriman) sesuai tabel.</td>
+              </tr>
+              <tr>
+                <td><code>result_json</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>error</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>provider_mode</code></td>
+                <td class="small">VARCHAR(30)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>provider_name</code></td>
+                <td class="small">VARCHAR(60)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>model</code></td>
+                <td class="small">VARCHAR(120)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>fallback_reason</code></td>
+                <td class="small">VARCHAR(40)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>started_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>finished_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_by</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>scholarship_requirement_groups</code></h3>
+          <p class="small muted">Kelompok persyaratan dengan operator AND/OR dan flag wajib/opsional.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarships.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td class="small">VARCHAR(160)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>operator</code></td>
+                <td class="small">VARCHAR(5)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">eq/neq/gt/gte/lt/lte/in/not_in/between/contains (requirement) atau AND/OR (group).</td>
+              </tr>
+              <tr>
+                <td><code>is_mandatory</code></td>
+                <td class="small">BOOLEAN</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Persyaratan wajib menggugurkan kelayakan; opsional tidak.</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>scholarship_requirements</code></h3>
+          <p class="small muted">Aturan persyaratan terstruktur: field/operator/nilai atau tag.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>group_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarship_requirement_groups.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>tag_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tags.id</code></td>
+                <td class="small">Referensi ke Master Tag.</td>
+              </tr>
+              <tr>
+                <td><code>field_key</code></td>
+                <td class="small">VARCHAR(60)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">gpa/toefl_score/education_level/major/domicile/semester/age/achievements.</td>
+              </tr>
+              <tr>
+                <td><code>operator</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">eq/neq/gt/gte/lt/lte/in/not_in/between/contains (requirement) atau AND/OR (group).</td>
+              </tr>
+              <tr>
+                <td><code>value_json</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Nilai atau daftar nilai pembanding.</td>
+              </tr>
+              <tr>
+                <td><code>unit</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>is_mandatory</code></td>
+                <td class="small">BOOLEAN</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Persyaratan wajib menggugurkan kelayakan; opsional tidak.</td>
+              </tr>
+              <tr>
+                <td><code>source_reference</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>description</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>scholarship_sources</code></h3>
+          <p class="small muted">Sumber beasiswa: URL, teks, PDF, atau input manual, terkait job ekstraksi.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarships.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>extraction_job_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>source_type</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>source_url</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>raw_text</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>checked_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>scholarship_tags</code></h3>
+          <p class="small muted">Relasi beasiswa–tag: konteks, status review admin, bobot, bukti.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarships.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>tag_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tags.id</code></td>
+                <td class="small">Referensi ke Master Tag.</td>
+              </tr>
+              <tr>
+                <td><code>context</code></td>
+                <td class="small">VARCHAR(30)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Konteks relasi tag (lihat catatan desain).</td>
+              </tr>
+              <tr>
+                <td><code>assignment_source</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">system / ai / user / admin.</td>
+              </tr>
+              <tr>
+                <td><code>confidence</code></td>
+                <td class="small">FLOAT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Keyakinan AI 0–1; bukan bukti kebenaran.</td>
+              </tr>
+              <tr>
+                <td><code>review_status</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">pending / approved / rejected (admin).</td>
+              </tr>
+              <tr>
+                <td><code>weight</code></td>
+                <td class="small">FLOAT</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Bobot 0–1; default 1.0.</td>
+              </tr>
+              <tr>
+                <td><code>evidence</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">JSON kutipan/alasan penetapan.</td>
+              </tr>
+              <tr>
+                <td><code>reviewed_by</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>reviewed_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          <p class='small muted'>Batasan: UNIQUE (scholarship_id, tag_id, context)</p>
+        </section>
+        <section class="card">
+          <h3><code>scholarship_verifications</code></h3>
+          <p class="small muted">Jejak keputusan admin: approved/rejected beserta alasan.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarships.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>extraction_job_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>decision</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>reason</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>reviewed_by</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>scholarships</code></h3>
+          <p class="small muted">Data beasiswa dan status verifikasi (status pendaftaran dihitung dari tanggal).</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td class="small">VARCHAR(200)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>organizer</code></td>
+                <td class="small">VARCHAR(200)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>description</code></td>
+                <td class="small">TEXT</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>education_levels</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>benefits</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>application_start</code></td>
+                <td class="small">VARCHAR(40)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>application_deadline</code></td>
+                <td class="small">VARCHAR(40)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>verification_status</code></td>
+                <td class="small">VARCHAR(30)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">draft / pending_verification / verified / rejected.</td>
+              </tr>
+              <tr>
+                <td><code>rejection_reason</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>is_demo</code></td>
+                <td class="small">BOOLEAN</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>student_profiles</code></h3>
+          <p class="small muted">Deskripsi asli, hasil analisis sementara, fakta terstruktur terkonfirmasi, dan penanda kirim sekali.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>user_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span><span class="tag uq">UQ</span></td>
+                <td class="small"><code>users.id</code></td>
+                <td class="small">Pemilik data.</td>
+              </tr>
+              <tr>
+                <td><code>description</code></td>
+                <td class="small">TEXT</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>extracted_facts_json</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Hasil AI yang belum dikonfirmasi.</td>
+              </tr>
+              <tr>
+                <td><code>latest_analysis_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID analisis terbaru yang boleh dikonfirmasi.</td>
+              </tr>
+              <tr>
+                <td><code>confirmed_analysis_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Analisis yang sudah dikonfirmasi (sekali pakai).</td>
+              </tr>
+              <tr>
+                <td><code>profile_status</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">draft / analyzed / confirmed.</td>
+              </tr>
+              <tr>
+                <td><code>education_level</code></td>
+                <td class="small">VARCHAR(40)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>major</code></td>
+                <td class="small">VARCHAR(120)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>institution</code></td>
+                <td class="small">VARCHAR(160)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>gpa</code></td>
+                <td class="small">FLOAT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>domicile</code></td>
+                <td class="small">VARCHAR(120)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>toefl_type</code></td>
+                <td class="small">VARCHAR(40)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>toefl_score</code></td>
+                <td class="small">INTEGER</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>achievements_json</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>facts_confirmed_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>profile_submitted_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Penanda kirim sekali; bila terisi, analyze &amp; confirm ditolak 409.</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          <p class='small muted'>Batasan: UNIQUE (user_id)</p>
+        </section>
+        <section class="card">
+          <h3><code>tag_aliases</code></h3>
+          <p class="small muted">Sinonim/variasi bahasa yang dinormalisasi ke slug resmi.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>tag_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tags.id</code></td>
+                <td class="small">Referensi ke Master Tag.</td>
+              </tr>
+              <tr>
+                <td><code>alias</code></td>
+                <td class="small">VARCHAR(160)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>language</code></td>
+                <td class="small">VARCHAR(10)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>tag_categories</code></h3>
+          <p class="small muted">Kategori induk Universal Master Tag (14 kategori seed).</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>code</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag uq">UQ</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td class="small">VARCHAR(80)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <p class='small muted'>Batasan: UNIQUE (code)</p>
+        </section>
+        <section class="card">
+          <h3><code>tags</code></h3>
+          <p class="small muted">Master Tag tunggal untuk pengguna dan beasiswa; slug unik, hierarki via parent_id.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>category_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tag_categories.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>parent_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tags.id</code></td>
+                <td class="small">Hierarki Master Tag (nullable).</td>
+              </tr>
+              <tr>
+                <td><code>slug</code></td>
+                <td class="small">VARCHAR(120)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag uq">UQ</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Identifier stabil untuk integrasi.</td>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td class="small">VARCHAR(160)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>description</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>is_active</code></td>
+                <td class="small">BOOLEAN</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>user_scholarship_bookmarks</code></h3>
+          <p class="small muted">Bookmark pengguna (skema siap; UI belum memakai).</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>user_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>users.id</code></td>
+                <td class="small">Pemilik data.</td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>scholarships.id</code></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          <p class='small muted'>Batasan: UNIQUE (user_id, scholarship_id)</p>
+        </section>
+        <section class="card">
+          <h3><code>user_scholarship_submissions</code></h3>
+          <p class="small muted">Screenshot beasiswa kiriman pengguna untuk antrean verifikasi admin.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>user_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>users.id</code></td>
+                <td class="small">Pemilik data.</td>
+              </tr>
+              <tr>
+                <td><code>note</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>image_mime</code></td>
+                <td class="small">VARCHAR(60)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>image_data</code></td>
+                <td class="small">BLOB</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">BLOB gambar screenshot (PNG/JPEG/WEBP, maks 5 MB).</td>
+              </tr>
+              <tr>
+                <td><code>status</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Status proses (job/sesi/kiriman) sesuai tabel.</td>
+              </tr>
+              <tr>
+                <td><code>reason</code></td>
+                <td class="small">TEXT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>scholarship_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>reviewed_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>reviewed_by</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+        <section class="card">
+          <h3><code>user_tags</code></h3>
+          <p class="small muted">Relasi pengguna–tag: konteks, sumber, confidence, status konfirmasi, bobot, bukti.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>user_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>users.id</code></td>
+                <td class="small">Pemilik data.</td>
+              </tr>
+              <tr>
+                <td><code>tag_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag fk">FK</span></td>
+                <td class="small"><code>tags.id</code></td>
+                <td class="small">Referensi ke Master Tag.</td>
+              </tr>
+              <tr>
+                <td><code>context</code></td>
+                <td class="small">VARCHAR(30)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Konteks relasi tag (lihat catatan desain).</td>
+              </tr>
+              <tr>
+                <td><code>assignment_source</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">system / ai / user / admin.</td>
+              </tr>
+              <tr>
+                <td><code>confidence</code></td>
+                <td class="small">FLOAT</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Keyakinan AI 0–1; bukan bukti kebenaran.</td>
+              </tr>
+              <tr>
+                <td><code>confirmation_status</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">suggested / confirmed / rejected (pengguna/sistem).</td>
+              </tr>
+              <tr>
+                <td><code>weight</code></td>
+                <td class="small">FLOAT</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Bobot 0–1; default 1.0.</td>
+              </tr>
+              <tr>
+                <td><code>evidence</code></td>
+                <td class="small">JSON</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">JSON kutipan/alasan penetapan.</td>
+              </tr>
+              <tr>
+                <td><code>analysis_id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          <p class='small muted'>Batasan: UNIQUE (user_id, tag_id, context)</p>
+        </section>
+        <section class="card">
+          <h3><code>users</code></h3>
+          <p class="small muted">Akun demo: pengguna dan admin, termasuk hash kata sandi.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Kolom</th><th>Tipe</th><th>Null</th><th>Key</th><th>Referensi</th><th>Keterangan</th></tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td class="small">VARCHAR(36)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag pk">PK</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">UUID string (36 karakter), primary key.</td>
+              </tr>
+              <tr>
+                <td><code>username</code></td>
+                <td class="small">VARCHAR(80)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="tag uq">UQ</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>display_name</code></td>
+                <td class="small">VARCHAR(120)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>role</code></td>
+                <td class="small">VARCHAR(20)</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small"></td>
+              </tr>
+              <tr>
+                <td><code>password_hash</code></td>
+                <td class="small">VARCHAR(255)</td>
+                <td class="small"><span class="null">NULL</span></td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">PBKDF2-SHA256 (200k iterasi); tidak pernah dikembalikan API.</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu pembuatan (UTC).</td>
+              </tr>
+              <tr>
+                <td><code>updated_at</code></td>
+                <td class="small">DATETIME</td>
+                <td class="small">NOT NULL</td>
+                <td><span class="muted">—</span></td>
+                <td class="small"><span class="muted">—</span></td>
+                <td class="small">Waktu perubahan terakhir (UTC).</td>
+              </tr></tbody>
+            </table>
+          </div>
+          
+        </section>
+
+  <h2>Relasi antar tabel</h2>
+  <div class="table-wrap card">
+    <table>
+      <thead><tr><th>Dari</th><th>Ke</th><th>On delete</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>auth_sessions.user_id</code></td>
+          <td><code>users.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_requirement_groups.scholarship_id</code></td>
+          <td><code>scholarships.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_requirements.group_id</code></td>
+          <td><code>scholarship_requirement_groups.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_requirements.tag_id</code></td>
+          <td><code>tags.id</code></td>
+          <td class="small">NO ACTION</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_sources.scholarship_id</code></td>
+          <td><code>scholarships.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_tags.scholarship_id</code></td>
+          <td><code>scholarships.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_tags.tag_id</code></td>
+          <td><code>tags.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>scholarship_verifications.scholarship_id</code></td>
+          <td><code>scholarships.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>student_profiles.user_id</code></td>
+          <td><code>users.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>tag_aliases.tag_id</code></td>
+          <td><code>tags.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>tags.category_id</code></td>
+          <td><code>tag_categories.id</code></td>
+          <td class="small">NO ACTION</td>
+        </tr>
+        <tr>
+          <td><code>tags.parent_id</code></td>
+          <td><code>tags.id</code></td>
+          <td class="small">NO ACTION</td>
+        </tr>
+        <tr>
+          <td><code>user_scholarship_bookmarks.scholarship_id</code></td>
+          <td><code>scholarships.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>user_scholarship_bookmarks.user_id</code></td>
+          <td><code>users.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>user_scholarship_submissions.user_id</code></td>
+          <td><code>users.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>user_tags.tag_id</code></td>
+          <td><code>tags.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr>
+        <tr>
+          <td><code>user_tags.user_id</code></td>
+          <td><code>users.id</code></td>
+          <td class="small">CASCADE</td>
+        </tr></tbody>
+    </table>
+  </div>
+
+  <h2>Catatan desain</h2>
+  <div class="card">
+    <ul class="small">
+      <li>Identifier memakai UUID string (36) agar mudah dipindah ke PostgreSQL; tidak ada auto-increment.</li>
+      <li>Satu <code>tags</code> dipakai bersama pengguna dan beasiswa; konteks disimpan di tabel relasi
+          (<code>user_tags.context</code>, <code>scholarship_tags.context</code>), bukan tabel tag terpisah.</li>
+      <li>Nilai enum disimpan sebagai string (mis. <code>verification_status</code>) agar mudah dibaca; validasi dilakukan di service, bukan CHECK constraint.</li>
+      <li>Kolom JSON (<code>*_json</code>, <code>value_json</code>, <code>evidence</code>) menyimpan struktur fleksibel; tipe/rentang tetap divalidasi Pydantic sebelum disimpan.</li>
+      <li>Skema dibuat lewat <code>Base.metadata.create_all</code> saat startup/seed (tanpa migrasi Alembic); perubahan kolom memerlukan reset database demo.</li>
+      <li>Status pendaftaran (<code>open/upcoming/closed/unknown</code>) tidak disimpan — dihitung dari <code>application_start</code>/<code>application_deadline</code>.</li>
+      <li><code>user_tags</code> dan <code>scholarship_tags</code> memakai unique gabungan agar satu tag tidak dobel pada konteks yang sama.</li>
+      <li>Sesi login menyimpan hash token, bukan token asli; reset kata sandi mencabut semua sesi pengguna.</li>
+    </ul>
+  </div>
+
+  <p class="foot">
+    Dibuat otomatis dari metadata SQLAlchemy (<code>backend/app/models/entities.py</code>) dan snapshot
+    <code>backend/app.db</code>. Regenerasi dengan <code>python docs/generate_db_design.py</code>.
+  </p>
+</div>
+</body>
+</html>

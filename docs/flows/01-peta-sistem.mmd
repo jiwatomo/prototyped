@@ -1,0 +1,9 @@
+flowchart LR
+  B["Browser :5500"] -->|"fetch + Bearer token"| F["FastAPI :8000"]
+  F --> R["Router /api"]
+  R --> D["Dependency auth & role"]
+  D --> S["Service layer"]
+  S --> DB[("SQLite app.db")]
+  S --> AI["AIProvider"]
+  AI --> L["openai_compatible (DeepSeek)"]
+  AI --> M["MockAIProvider"]

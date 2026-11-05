@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Service Design — BeasiswaMatch</title>
+<style>
+:root { --bg:#f5f6f8; --surface:#fff; --border:#d8dce3; --text:#1d2430; --muted:#5d6675;
+        --primary:#1f5fa8; --code:#eef2f7; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); line-height:1.55;
+       font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif; }
+.wrap { max-width:1120px; margin:0 auto; padding:2rem 1.25rem 4rem; }
+h1 { font-size:1.6rem; margin:0 0 .3rem; letter-spacing:-.01em; }
+h2 { font-size:1.15rem; margin:2.2rem 0 .6rem; }
+h3 { font-size:1rem; margin:0 0 .2rem; }
+p { margin:.3rem 0 .7rem; }
+.muted { color:var(--muted); }
+.small { font-size:.83rem; }
+.banner { background:#fff6d6; color:#6b4b00; border:1px solid #ecd9a0; border-radius:8px;
+          padding:.55rem .8rem; font-size:.84rem; margin:1rem 0 1.6rem; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+        padding:1rem 1.1rem; margin:1rem 0; box-shadow:0 1px 2px rgba(20,30,45,.06); }
+.card-head { display:flex; flex-wrap:wrap; gap:.5rem; align-items:baseline; justify-content:space-between; }
+.path { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.78rem; color:var(--muted); }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.8rem;
+       background:var(--code); padding:.05rem .3rem; border-radius:4px; }
+pre { background:var(--code); border-radius:8px; padding:.55rem .7rem; overflow-x:auto; font-size:.78rem; margin:.25rem 0 .6rem; }
+table { width:100%; border-collapse:collapse; font-size:.84rem; }
+th, td { border-bottom:1px solid var(--border); padding:.4rem .5rem; text-align:left; vertical-align:top; }
+th { background:#eef2f7; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; color:#39424f; }
+tbody tr:hover { background:#fafbfd; }
+.badge { display:inline-block; padding:.08rem .45rem; border-radius:999px; font-size:.7rem; font-weight:700; }
+.ai { background:#e4eefb; color:#17487f; }
+.auth { background:#fdf1dc; color:#8a5a09; }
+.profile { background:#e9e6fb; color:#4b3a8a; }
+.catalog { background:#e4f4e8; color:#1c6b34; }
+.admin { background:#fbe5e5; color:#98221f; }
+.core { background:#eceff4; color:#39424f; }
+.toc { display:grid; gap:.25rem; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); font-size:.86rem; }
+.toc a { color:var(--primary); text-decoration:none; }
+.toc a:hover { text-decoration:underline; }
+ul.notes { margin:.3rem 0 .8rem; padding-left:1.1rem; font-size:.86rem; }
+ul.notes li { margin:.15rem 0; }
+.foot { margin-top:2.5rem; color:var(--muted); font-size:.8rem; border-top:1px solid var(--border); padding-top:.8rem; }
+@media print { body { background:#fff; } .card { box-shadow:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Service Design — BeasiswaMatch</h1>
+  <p class="muted small">Backend FastAPI · 15 modul service · dibuat 05 November 2026 18:13</p>
+
+  <div class="banner">
+    Ringkasan per modul: tanggung jawab, pemanggil, aturan penting, dan fungsi publik beserta signature aslinya
+    (dibaca langsung dari kode dengan <code>ast</code>, jadi selalu sinkron).
+  </div>
+
+  <h2>Peta service</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Lapisan</th><th>Modul</th><th>Peran singkat</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge ai">AI</span></td><td><code>ai/factory.py</code></td><td>Pilih provider + fallback + validasi output</td></tr>
+        <tr><td><span class="badge ai">AI</span></td><td><code>ai/providers/*</code></td><td>Adapter LLM (DeepSeek) dan mock deterministik</td></tr>
+        <tr><td><span class="badge profile">Profil</span></td><td><code>profile_service.py</code></td><td>Analisis deskripsi, kirim sekali, koreksi fakta</td></tr>
+        <tr><td><span class="badge catalog">Katalog</span></td><td><code>matching_service.py</code></td><td>Skor relevansi tag (murni)</td></tr>
+        <tr><td><span class="badge catalog">Katalog</span></td><td><code>eligibility_service.py</code></td><td>Persyaratan, grup AND/OR, gap analysis</td></tr>
+        <tr><td><span class="badge catalog">Katalog</span></td><td><code>recommendation_service.py</code></td><td>Rakit hasil, urutkan, hot/recent</td></tr>
+        <tr><td><span class="badge admin">Admin</span></td><td><code>extraction_service.py</code></td><td>Sumber → AI → draft; input manual</td></tr>
+        <tr><td><span class="badge admin">Admin</span></td><td><code>verification_service.py</code></td><td>Edit, approve, reject, stats</td></tr>
+        <tr><td><span class="badge admin">Admin</span></td><td><code>submission_service.py</code></td><td>Antrean screenshot pengguna</td></tr>
+        <tr><td><span class="badge auth">Auth</span></td><td><code>auth_service.py</code></td><td>Hash password, sesi, revoke</td></tr>
+        <tr><td><span class="badge admin">Admin</span></td><td><code>user_service.py</code></td><td>Tambah pengguna, reset password</td></tr>
+        <tr><td><span class="badge core">Inti</span></td><td><code>tagging_service.py</code></td><td>Master Tag, alias, hierarki, tag dari fakta</td></tr>
+        <tr><td><span class="badge core">Inti</span></td><td><code>errors.py</code></td><td>Error domain → respons JSON</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Daftar modul</h2>
+  <div class="toc"><a href="#errors">Errors</a><a href="#tagging-service">Tagging service</a><a href="#matching-service">Matching service</a><a href="#eligibility-service">Eligibility service</a><a href="#profile-service">Profile service</a><a href="#recommendation-service">Recommendation service</a><a href="#extraction-service">Extraction service</a><a href="#verification-service">Verification service</a><a href="#submission-service">Submission service</a><a href="#auth-service">Auth service</a><a href="#user-service">User service</a><a href="#ai-interfaces">AI interfaces</a><a href="#ai-factory">AI factory</a><a href="#ai-providers-mock">Mock provider</a><a href="#ai-providers-openai-compatible">OpenAI-compatible provider</a></div>
+
+  <h2>Detail per modul</h2>
+  
+        <section class="card" id="errors">
+          <div class="card-head">
+            <div>
+              <h3>Errors</h3>
+              <div class="path">errors.py · 10 baris</div>
+            </div>
+            <span class="badge core">Inti</span>
+          </div>
+          <p class="small">Satu tipe error domain yang diterjemahkan menjadi respons JSON konsisten (detail + code) tanpa membocorkan stack trace.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>Semua route melalui exception handler di app/main.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>status_code menentukan HTTP status (400/401/403/404/409/413/422/503).</li><li>code dipakai frontend untuk membedakan kasus, mis. already_submitted vs session_expired.</li><li>Pesan ditulis dalam bahasa pengguna; detail teknis tetap di log server.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>ServiceError</code></td><td class='small'><code>class</code></td><td class='small'>Error domain dengan pesan manusiawi, status HTTP, dan kode mesin.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="tagging-service">
+          <div class="card-head">
+            <div>
+              <h3>Tagging service</h3>
+              <div class="path">tagging_service.py · 154 baris</div>
+            </div>
+            <span class="badge core">Inti</span>
+          </div>
+          <p class="small">Pintu masuk Master Tag: daftar tag aktif untuk AI, peta alias, hierarki, dan penurunan tag dari fakta.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>profile_service</code></li><li><code>extraction_service</code></li><li><code>verification_service</code></li><li><code>recommendation_service (graph)</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Satu tabel tags dipakai bersama pengguna dan beasiswa.</li><li>allowed_tags hanya mengirim slug/nama/kategori — tidak ada data sensitif ke model.</li><li>tags_from_facts deterministik: jenjang, jurusan, domisili, TOEFL → tag sistem.</li><li>TagGraph dipakai untuk mencocokkan leluhur/turunan dan mencegah hitung ganda.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>load_tag_rows</code></td><td class='small'><code>def load_tag_rows(db: Session, active_only: bool = True) -&gt; list[dict[str, Any]]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>build_graph</code></td><td class='small'><code>def build_graph(db: Session, active_only: bool = True) -&gt; TagGraph</code></td><td class='small'>Bangun TagGraph dari tabel tags.</td></tr><tr><td><code>allowed_tags</code></td><td class='small'><code>def allowed_tags(db: Session) -&gt; list[dict[str, Any]]</code></td><td class='small'>Daftar tag aktif (slug/nama/kategori) untuk prompt AI.</td></tr><tr><td><code>alias_map</code></td><td class='small'><code>def alias_map(db: Session) -&gt; dict[str, str]</code></td><td class='small'>Peta alias → slug resmi.</td></tr><tr><td><code>tags_from_facts</code></td><td class='small'><code>def tags_from_facts(facts: dict[str, Any]) -&gt; list[dict[str, Any]]</code></td><td class='small'>Turunkan tag sistem dari fakta terkonfirmasi (tanpa AI).</td></tr><tr><td><code>find_tag</code></td><td class='small'><code>def find_tag(db: Session, slug: str) -&gt; Tag | None</code></td><td class='small'>Cari tag berdasarkan slug.</td></tr><tr><td><code>TagGraph</code></td><td class='small'><code>class</code></td><td class='small'>Read-only view of the Master Tag hierarchy.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="matching-service">
+          <div class="card-head">
+            <div>
+              <h3>Matching service</h3>
+              <div class="path">matching_service.py · 141 baris</div>
+            </div>
+            <span class="badge catalog">Katalog</span>
+          </div>
+          <p class="small">Menghitung skor relevansi tag antara pengguna dan beasiswa. Fungsi murni: tanpa DB, tanpa AI.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>recommendation_service.build_entry</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Hanya konteks kompatibel yang masuk pembagi (matriks di COMPATIBLE_CONTEXTS).</li><li>Cocok bila tag_id sama atau relasi leluhur/turunan.</li><li>Anak yang sudah terwakili leluhurnya tidak dihitung dua kali (dicatat counted=false).</li><li>Tanpa tag pembanding → skor null + insufficient_preferences, bukan 0%.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>contexts_compatible</code></td><td class='small'><code>def contexts_compatible(user_context: str, scholarship_context: str) -&gt; bool</code></td><td class='small'>Cek pasangan konteks pengguna–beasiswa diizinkan.</td></tr><tr><td><code>eligible_user_tags</code></td><td class='small'><code>def eligible_user_tags(user_tags: list[dict[str, Any]], scholarship_tags: list[dict[str, Any]]) -&gt; list[dict[str, Any]]</code></td><td class='small'>Filter tag pengguna yang konteksnya komparabel.</td></tr><tr><td><code>match_tags</code></td><td class='small'><code>def match_tags(user_tags: list[dict[str, Any]], scholarship_tags: list[dict[str, Any]], graph: TagGraph | None = None) -&gt; dict[str, Any]</code></td><td class='small'>Hitung pasangan cocok, anti dobel, dan skor relevansi.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="eligibility-service">
+          <div class="card-head">
+            <div>
+              <h3>Eligibility service</h3>
+              <div class="path">eligibility_service.py · 199 baris</div>
+            </div>
+            <span class="badge catalog">Katalog</span>
+          </div>
+          <p class="small">Mengevaluasi persyaratan terstruktur (operator, grup AND/OR) dan menyimpulkan status kelayakan + gap analysis.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>recommendation_service.build_entry</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Status per persyaratan: met / not_met / unknown.</li><li>Grup AND: semua harus met; grup OR: satu cukup.</li><li>Persyaratan opsional tidak pernah menggugurkan kelayakan.</li><li>Persyaratan berbasis tag tidak disimpulkan not_met hanya karena tag tidak ada.</li><li>Keputusan akhir: eligible / potentially_eligible / not_eligible.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>evaluate_requirement</code></td><td class='small'><code>def evaluate_requirement(requirement: dict[str, Any], profile: dict[str, Any], confirmed_tag_ids: set[str], graph: TagGraph | None = None) -&gt; dict[str, Any]</code></td><td class='small'>Evaluasi satu persyaratan → met/not_met/unknown.</td></tr><tr><td><code>evaluate</code></td><td class='small'><code>def evaluate(groups: list[dict[str, Any]], profile: dict[str, Any], confirmed_tags: list[dict[str, Any]], graph: TagGraph | None = None) -&gt; dict[str, Any]</code></td><td class='small'>Evaluasi semua grup + status keseluruhan + ringkasan gap.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="profile-service">
+          <div class="card-head">
+            <div>
+              <h3>Profile service</h3>
+              <div class="path">profile_service.py · 395 baris</div>
+            </div>
+            <span class="badge profile">Profil</span>
+          </div>
+          <p class="small">Siklus hidup profil: analisis deskripsi bebas, konfirmasi sekali, koreksi fakta, dan payload profil.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/profile.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Sekali kirim: profile_submitted_at mengunci analyze &amp; confirm (409).</li><li>Deskripsi terkunci setelah kirim; fakta masih bisa diperbaiki (recompute tanpa AI).</li><li>Confirm tanpa daftar tag → saran AI diterima otomatis oleh sistem.</li><li>Tag turunan fakta ditambahkan dengan source system; penolakan lama tidak dibangkitkan.</li><li>Hanya analysis_id terbaru yang boleh dikonfirmasi, dan hanya sekali.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>get_user</code></td><td class='small'><code>def get_user(db: Session, username: str) -&gt; User</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>get_profile</code></td><td class='small'><code>def get_profile(db: Session, user: User) -&gt; StudentProfile</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>confirmed_facts</code></td><td class='small'><code>def confirmed_facts(profile: StudentProfile) -&gt; dict[str, Any]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>user_tags_payload</code></td><td class='small'><code>def user_tags_payload(db: Session, user: User) -&gt; list[dict[str, Any]]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>profile_payload</code></td><td class='small'><code>def profile_payload(db: Session, user: User, profile: StudentProfile) -&gt; dict[str, Any]</code></td><td class='small'>Bentuk profil untuk API (fakta, status, penanda kirim).</td></tr><tr><td><code>analyze_profile</code></td><td class='small'><code>async def analyze_profile(db: Session, user: User, profile: StudentProfile, description: str, ai: AIService) -&gt; dict[str, Any]</code></td><td class='small'>Panggil AI, validasi, simpan analisis sementara (belum fakta aktif).</td></tr><tr><td><code>confirm_profile</code></td><td class='small'><code>def confirm_profile(db: Session, user: User, profile: StudentProfile, payload: ProfileConfirmRequest) -&gt; dict[str, Any]</code></td><td class='small'>Kunci sekali kirim: simpan fakta, konfirmasi tag, set submitted_at.</td></tr><tr><td><code>update_profile</code></td><td class='small'><code>def update_profile(db: Session, user: User, profile: StudentProfile, payload: ProfileUpdateRequest) -&gt; dict[str, Any]</code></td><td class='small'>Update deskripsi (sebelum kirim) atau fakta (kapan saja, tanpa AI).</td></tr><tr><td><code>decide_single_tag</code></td><td class='small'><code>def decide_single_tag(db: Session, user: User, profile: StudentProfile, tag_id: str, decision: str) -&gt; dict[str, Any]</code></td><td class='small'>Konfirmasi/tolak satu tag pengguna (endpoint lama).</td></tr><tr><td><code>ensure_analysis_uuid</code></td><td class='small'><code>def ensure_analysis_uuid(value: str) -&gt; str</code></td><td class='small'>Guarantee a malformed analysis id is rejected before any DB lookup.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="recommendation-service">
+          <div class="card-head">
+            <div>
+              <h3>Recommendation service</h3>
+              <div class="path">recommendation_service.py · 308 baris</div>
+            </div>
+            <span class="badge catalog">Katalog</span>
+          </div>
+          <p class="small">Merakit hasil akhir: gabungkan matching + eligibility, urutkan, hitung hot/recent, dan tulis penjelasan.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/scholarships.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Hanya user_tags confirmed dan scholarship_tags approved pada beasiswa verified.</li><li>Urutan: eligible → potentially_eligible → not_eligible, lalu skor menurun.</li><li>Hot: open/upcoming dulu, lalu bookmark, deadline terdekat, skor.</li><li>Recent: created_at terbaru, maksimal 3, boleh tumpang tindih dengan hot.</li><li>application_status dihitung dari tanggal, bukan disimpan.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>confirmed_user_tag_rows</code></td><td class='small'><code>def confirmed_user_tag_rows(db: Session, user: User) -&gt; list[dict[str, Any]]</code></td><td class='small'>Ambil tag pengguna confirmed + bobotnya.</td></tr><tr><td><code>scholarship_tags</code></td><td class='small'><code>def scholarship_tags(db: Session, scholarship_id: str) -&gt; list[dict[str, Any]]</code></td><td class='small'>Ambil tag beasiswa yang approved untuk matching.</td></tr><tr><td><code>requirement_groups</code></td><td class='small'><code>def requirement_groups(db: Session, scholarship_id: str) -&gt; list[dict[str, Any]]</code></td><td class='small'>Ambil grup + persyaratan siap dievaluasi.</td></tr><tr><td><code>build_entry</code></td><td class='small'><code>def build_entry(db: Session, profile: StudentProfile, scholarship: Scholarship, user_tags: list[dict[str, Any]], graph: TagGraph) -&gt; dict[str, Any]</code></td><td class='small'>Satu entri beasiswa: skor, eligibility, requirements, penjelasan.</td></tr><tr><td><code>compute</code></td><td class='small'><code>def compute(db: Session, user: User, profile: StudentProfile) -&gt; dict[str, Any]</code></td><td class='small'>Hasil + hot + recent + counts untuk satu pengguna.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="extraction-service">
+          <div class="card-head">
+            <div>
+              <h3>Extraction service</h3>
+              <div class="path">extraction_service.py · 455 baris</div>
+            </div>
+            <span class="badge admin">Admin</span>
+          </div>
+          <p class="small">Mengubah sumber beasiswa (URL/teks/PDF) menjadi draft katalog, plus input manual admin.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/admin.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>URL di-fetch lalu tag HTML dibersihkan; PDF hanya teks (tanpa OCR).</li><li>Batas panjang input AI_MAX_INPUT_CHARS dan ukuran PDF MAX_PDF_BYTES.</li><li>Setiap hasil membuat extraction_job (status, provider_mode, fallback_reason).</li><li>Input manual memakai tabel dan alur review yang sama, source_type=manual.</li><li>Gagal AI → job failed + ServiceError 503, tidak ada draft setengah jadi.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>fetch_url_text</code></td><td class='small'><code>async def fetch_url_text(url: str) -&gt; str</code></td><td class='small'>Ambil halaman URL dan bersihkan HTML.</td></tr><tr><td><code>extract_pdf_text</code></td><td class='small'><code>def extract_pdf_text(data: bytes) -&gt; str</code></td><td class='small'>Ambil teks PDF; tolak bila kosong (hasil scan).</td></tr><tr><td><code>create_extraction</code></td><td class='small'><code>async def create_extraction(db: Session, ai: AIService, source_type: str, source_text: str | None = None, source_url: str | None = None, pdf_bytes: bytes | None = None, created_by: str | None = None) -&gt; ExtractionJob</code></td><td class='small'>Pipeline: sumber → AI → job + draft beasiswa pending.</td></tr><tr><td><code>create_manual_scholarship</code></td><td class='small'><code>def create_manual_scholarship(db: Session, data: ManualScholarshipRequest, admin_id: str | None) -&gt; ExtractionJob</code></td><td class='small'>Input manual admin dengan tabel/alur review yang sama.</td></tr><tr><td><code>job_payload</code></td><td class='small'><code>def job_payload(db: Session, job: ExtractionJob) -&gt; dict[str, Any]</code></td><td class='small'>Bentuk detail job ekstraksi untuk API admin.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="verification-service">
+          <div class="card-head">
+            <div>
+              <h3>Verification service</h3>
+              <div class="path">verification_service.py · 513 baris</div>
+            </div>
+            <span class="badge admin">Admin</span>
+          </div>
+          <p class="small">Review dan keputusan katalog berbasis beasiswa: edit, setujui, tolak, riwayat, statistik.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/admin.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Approve butuh nama dan minimal satu sumber tercatat.</li><li>Semua tag non-rejected menjadi approved saat approve.</li><li>Reject wajib alasan dan mencatat ScholarshipVerification.</li><li>Bekerja tanpa extraction job (record seed/import manual tetap bisa dikelola).</li><li>Endpoint ekstraksi hanya membungkus fungsi yang sama (job_payload).</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>get_job</code></td><td class='small'><code>def get_job(db: Session, extraction_id: str) -&gt; ExtractionJob</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>get_scholarship</code></td><td class='small'><code>def get_scholarship(db: Session, scholarship_id: str) -&gt; Scholarship</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>patch_scholarship</code></td><td class='small'><code>def patch_scholarship(db: Session, scholarship: Scholarship, payload: ExtractionPatchRequest) -&gt; None</code></td><td class='small'>Edit field, keputusan tag, dan ganti persyaratan.</td></tr><tr><td><code>approve_scholarship</code></td><td class='small'><code>def approve_scholarship(db: Session, scholarship: Scholarship, admin_id: str | None, job_id: str | None = None) -&gt; Scholarship</code></td><td class='small'>Set verified + approve tag non-rejected + catat riwayat.</td></tr><tr><td><code>reject_scholarship</code></td><td class='small'><code>def reject_scholarship(db: Session, scholarship: Scholarship, reason: str, admin_id: str | None, job_id: str | None = None) -&gt; Scholarship</code></td><td class='small'>Set rejected + alasan + catat riwayat.</td></tr><tr><td><code>scholarship_payload</code></td><td class='small'><code>def scholarship_payload(db: Session, scholarship: Scholarship) -&gt; dict[str, Any]</code></td><td class='small'>Detail admin: field, tag (semua status), requirements, sumber, riwayat.</td></tr><tr><td><code>list_scholarships</code></td><td class='small'><code>def list_scholarships(db: Session, status: str | None = None, search: str | None = None) -&gt; list[dict[str, Any]]</code></td><td class='small'>Daftar katalog admin + filter status/cari.</td></tr><tr><td><code>admin_stats</code></td><td class='small'><code>def admin_stats(db: Session) -&gt; dict[str, Any]</code></td><td class='small'>Angka dashboard (users, scholarships, extractions).</td></tr><tr><td><code>patch_extraction</code></td><td class='small'><code>def patch_extraction(db: Session, job: ExtractionJob, payload: ExtractionPatchRequest) -&gt; dict[str, Any]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>approve</code></td><td class='small'><code>def approve(db: Session, job: ExtractionJob, admin_id: str | None) -&gt; dict[str, Any]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>reject</code></td><td class='small'><code>def reject(db: Session, job: ExtractionJob, reason: str, admin_id: str | None) -&gt; dict[str, Any]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>pending_scholarships</code></td><td class='small'><code>def pending_scholarships(db: Session) -&gt; list[dict[str, Any]]</code></td><td class='small'>Antrean verifikasi (draft + pending).</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="submission-service">
+          <div class="card-head">
+            <div>
+              <h3>Submission service</h3>
+              <div class="path">submission_service.py · 122 baris</div>
+            </div>
+            <span class="badge admin">Admin</span>
+          </div>
+          <p class="small">Antrean screenshot beasiswa dari pengguna dan pemrosesan oleh admin.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/submissions.py</code></li><li><code>api/routes/admin.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Hanya PNG/JPEG/WEBP, maksimal 5 MB; gambar disimpan sebagai BLOB.</li><li>Status: pending → processed / rejected (sekali proses).</li><li>Gambar hanya dapat diambil admin (endpoint ber-Bearer).</li><li>Tanpa OCR: admin membaca gambar lalu menambah beasiswa manual.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>create_submission</code></td><td class='small'><code>def create_submission(db: Session, user: User, image_bytes: bytes, mime: str, note: str | None) -&gt; UserScholarshipSubmission</code></td><td class='small'>Validasi + simpan screenshot sebagai pending.</td></tr><tr><td><code>get_submission</code></td><td class='small'><code>def get_submission(db: Session, submission_id: str) -&gt; UserScholarshipSubmission</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>payload</code></td><td class='small'><code>def payload(submission: UserScholarshipSubmission, username: str | None = None) -&gt; dict[str, Any]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>list_for_user</code></td><td class='small'><code>def list_for_user(db: Session, user: User) -&gt; list[dict[str, Any]]</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>list_admin</code></td><td class='small'><code>def list_admin(db: Session, status: str | None = None) -&gt; list[dict[str, Any]]</code></td><td class='small'>Daftar kiriman untuk admin (default semua status).</td></tr><tr><td><code>process</code></td><td class='small'><code>def process(db: Session, submission: UserScholarshipSubmission, status: str, reason: str | None, admin_id: str | None, scholarship_id: str | None = None) -&gt; UserScholarshipSubmission</code></td><td class='small'>Tandai processed/rejected (sekali proses).</td></tr><tr><td><code>stats</code></td><td class='small'><code>def stats(db: Session) -&gt; dict[str, int]</code></td><td class='small'><span class="muted">—</span></td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="auth-service">
+          <div class="card-head">
+            <div>
+              <h3>Auth service</h3>
+              <div class="path">auth_service.py · 111 baris</div>
+            </div>
+            <span class="badge auth">Auth</span>
+          </div>
+          <p class="small">Hash kata sandi (PBKDF2-SHA256), menerbitkan sesi opaque, memvalidasi, dan mencabut sesi.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/auth.py</code></li><li><code>api/deps.py</code></li><li><code>user_service</code></li><li><code>seed.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>DB hanya menyimpan SHA-256 token; token asli hanya ada di klien.</li><li>Masa berlaku dari SESSION_TTL_MINUTES (default 480 menit).</li><li>Waktu dari SQLite dinormalisasi ke UTC sebelum dibandingkan (_aware).</li><li>Perbandingan hash memakai hmac.compare_digest (anti timing).</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>hash_password</code></td><td class='small'><code>def hash_password(password: str, salt = None, iterations = PBKDF2_ITERATIONS) -&gt; str</code></td><td class='small'>PBKDF2-SHA256 dengan salt acak; format pbkdf2_sha256$iter$salt$hash.</td></tr><tr><td><code>verify_password</code></td><td class='small'><code>def verify_password(password: str, stored: str | None) -&gt; bool</code></td><td class='small'>Bandingkan hash secara konstan-waktu.</td></tr><tr><td><code>authenticate</code></td><td class='small'><code>def authenticate(db: Session, username: str, password: str) -&gt; User</code></td><td class='small'>Cek username+password; selalu jalankan hash untuk mengurangi timing oracle.</td></tr><tr><td><code>create_session</code></td><td class='small'><code>def create_session(db: Session, user: User) -&gt; tuple[str, AuthSession]</code></td><td class='small'>Terbitkan token acak, simpan hash + expires_at.</td></tr><tr><td><code>resolve_session</code></td><td class='small'><code>def resolve_session(db: Session, token: str) -&gt; tuple[AuthSession, User]</code></td><td class='small'>Validasi token: ada, tidak revoked, belum kedaluwarsa; update last_seen_at.</td></tr><tr><td><code>revoke_session</code></td><td class='small'><code>def revoke_session(db: Session, session: AuthSession) -&gt; None</code></td><td class='small'>Tandai revoked_at (logout / reset password).</td></tr><tr><td><code>session_payload</code></td><td class='small'><code>def session_payload(session: AuthSession, user: User) -&gt; dict</code></td><td class='small'>Bentuk respons sesi untuk API (tanpa token/hash).</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="user-service">
+          <div class="card-head">
+            <div>
+              <h3>User service</h3>
+              <div class="path">user_service.py · 98 baris</div>
+            </div>
+            <span class="badge admin">Admin</span>
+          </div>
+          <p class="small">Admin membuat akun demo (pengguna/admin) dan mereset kata sandi.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/admin.py</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Username unik, disimpan lowercase, minimal 3 karakter.</li><li>Kata sandi minimal 8 karakter; hash PBKDF2.</li><li>Akun student baru otomatis mendapat StudentProfile berstatus draft.</li><li>Reset kata sandi mencabut seluruh sesi akun tersebut.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>list_users</code></td><td class='small'><code>def list_users(db: Session) -&gt; list[dict]</code></td><td class='small'>Daftar akun + status profil untuk halaman admin.</td></tr><tr><td><code>get_user</code></td><td class='small'><code>def get_user(db: Session, user_id: str) -&gt; User</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>create_user</code></td><td class='small'><code>def create_user(db: Session, username, display_name, role, password) -&gt; User</code></td><td class='small'>Buat akun baru; student otomatis dapat profil draft.</td></tr><tr><td><code>reset_password</code></td><td class='small'><code>def reset_password(db: Session, user: User, password: str | None) -&gt; tuple[str, bool]</code></td><td class='small'>Set password baru (atau generate), cabut semua sesi.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="ai-interfaces">
+          <div class="card-head">
+            <div>
+              <h3>AI interfaces</h3>
+              <div class="path">ai/interfaces.py · 54 baris</div>
+            </div>
+            <span class="badge ai">AI</span>
+          </div>
+          <p class="small">Kontrak vendor-neutral untuk provider AI dan tipe error-nya.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>factory</code></li><li><code>providers/mock</code></li><li><code>providers/openai_compatible</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Empat operasi: extract_user_profile, classify_tags, extract_scholarship, explain_recommendation.</li><li>AIProviderError.reason berisi kode singkat: timeout / provider_error / invalid_output.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>AIProviderError</code></td><td class='small'><code>class</code></td><td class='small'>Raised by adapters. `reason` is a short, secret-free code.</td></tr><tr><td><code>InvalidOutputError</code></td><td class='small'><code>class</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>AIProvider</code></td><td class='small'><code>class</code></td><td class='small'><span class="muted">—</span></td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="ai-factory">
+          <div class="card-head">
+            <div>
+              <h3>AI factory</h3>
+              <div class="path">ai/factory.py · 233 baris</div>
+            </div>
+            <span class="badge ai">AI</span>
+          </div>
+          <p class="small">Memilih provider sesuai konfigurasi, memvalidasi output Pydantic + whitelist slug, dan menjalankan fallback transparan.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>api/routes/*</code></li><li><code>profile_service</code></li><li><code>extraction_service</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Mode: auto / llm / mock; fallback mengikuti AI_FALLBACK_ENABLED.</li><li>Slug di luar Master Tag atau context salah dianggap invalid_output → fallback.</li><li>Setiap hasil membawa provider_mode, provider_name, model, fallback_reason.</li><li>get_ai_service() cached; tidak pernah mengekspos API key.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>get_ai_service</code></td><td class='small'><code>def get_ai_service() -&gt; AIService</code></td><td class='small'>Singleton AIService sesuai konfigurasi.</td></tr><tr><td><code>AIUnavailableError</code></td><td class='small'><code>class</code></td><td class='small'>Raised when the LLM path fails and fallback is disabled.</td></tr><tr><td><code>AIService</code></td><td class='small'><code>class</code></td><td class='small'>Single entry point used by business services.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="ai-providers-mock">
+          <div class="card-head">
+            <div>
+              <h3>Mock provider</h3>
+              <div class="path">ai/providers/mock.py · 536 baris</div>
+            </div>
+            <span class="badge ai">AI</span>
+          </div>
+          <p class="small">Provider deterministik berbasis regex/kata kunci untuk demo offline dan fallback.</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>factory</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>Tidak pernah melakukan request jaringan.</li><li>Semua slug dibatasi allowed_tags; tidak mengarang tag baru.</li><li>Meniru ekstraksi fakta + tag profil, ekstraksi beasiswa, dan penjelasan.</li><li>Dipakai juga oleh seed untuk sanity check deskripsi demo.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>MockAIProvider</code></td><td class='small'><code>class</code></td><td class='small'>Implementasi deterministik dari keempat operasi AI.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="card" id="ai-providers-openai-compatible">
+          <div class="card-head">
+            <div>
+              <h3>OpenAI-compatible provider</h3>
+              <div class="path">ai/providers/openai_compatible.py · 174 baris</div>
+            </div>
+            <span class="badge ai">AI</span>
+          </div>
+          <p class="small">Adapter HTTP generik ke endpoint /chat/completions (dipakai untuk DeepSeek).</p>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Dipanggil oleh</strong></p>
+          <ul class="notes"><li><code>factory (mode llm)</code></li></ul>
+          <p class="small muted" style="margin:0 0 .2rem"><strong>Aturan / catatan</strong></p>
+          <ul class="notes"><li>httpx.AsyncClient async; timeout dan retry terbatas dari env.</li><li>Prompt diambil dari services/ai/prompts/*.txt.</li><li>Respons dibersihkan dari code fence lalu di-parse JSON.</li><li>Authorization header tidak pernah dilog atau dikembalikan.</li></ul>
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr><th>Simbol</th><th>Signature</th><th>Ringkas</th></tr></thead>
+              <tbody><tr><td><code>load_prompt</code></td><td class='small'><code>def load_prompt(name: str) -&gt; str</code></td><td class='small'><span class="muted">—</span></td></tr><tr><td><code>OpenAICompatibleProvider</code></td><td class='small'><code>class</code></td><td class='small'>Adapter chat completions dengan retry + parsing JSON.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+  <p class="foot">
+    Regenerasi: <code>python docs/generate_services_doc.py</code>. Signature dan daftar fungsi dibaca dari
+    AST; ringkasan dan aturan berasal dari metadata di skrip generator.
+  </p>
+</div>
+</body>
+</html>

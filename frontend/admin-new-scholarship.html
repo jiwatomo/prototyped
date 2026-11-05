@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tambah Beasiswa — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="admin">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Tambah beasiswa</h1>
+      <p class="muted small">Ekstraksi otomatis atau input manual — keduanya masuk antrean verifikasi.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <nav class="admin-nav" aria-label="Navigasi admin">
+    <a href="admin.html">Dashboard</a>
+    <a href="admin-users.html">Pengguna</a>
+    <a href="admin-scholarships.html">Beasiswa</a>
+    <a href="admin-new-scholarship.html" class="is-active">Tambah beasiswa</a>
+  </nav>
+
+  <main class="container stack">
+    <section class="card">
+      <h2>Ekstraksi beasiswa</h2>
+      <p class="hint">Isi salah satu sumber: URL, teks, atau PDF berbasis teks (bukan hasil scan).</p>
+      <label for="admin-url">URL sumber</label>
+      <input id="admin-url" type="url" placeholder="https://contoh.test/beasiswa" />
+      <label for="admin-text">Teks sumber</label>
+      <textarea id="admin-text" rows="6" placeholder="Tempelkan teks pengumuman beasiswa di sini..."></textarea>
+      <label for="admin-file">atau unggah PDF</label>
+      <input id="admin-file" type="file" accept="application/pdf" />
+      <div class="row">
+        <button id="btn-extract" class="btn primary" type="button">Ekstrak Informasi</button>
+        <span id="extract-status" class="muted small"></span>
+      </div>
+    </section>
+
+    <section class="card" id="manual-card">
+      <h2>Tambah beasiswa manual</h2>
+      <p class="hint">
+        Ketik data beasiswa langsung tanpa ekstraksi AI. Hasilnya tetap berstatus
+        <strong>pending_verification</strong> dan harus disetujui sebelum tampil di katalog pengguna.
+      </p>
+      <div class="facts-grid">
+        <label>Nama beasiswa *
+          <input id="manual-name" type="text" placeholder="Beasiswa Contoh Nusantara" />
+        </label>
+        <label>Penyelenggara
+          <input id="manual-organizer" type="text" placeholder="Yayasan Contoh" />
+        </label>
+        <label>Jenjang (pisahkan koma)
+          <input id="manual-levels" type="text" placeholder="S1, SMA" />
+        </label>
+        <label>Manfaat (pisahkan koma)
+          <input id="manual-benefits" type="text" placeholder="Biaya pendidikan, Uang saku" />
+        </label>
+        <label>Mulai pendaftaran
+          <input id="manual-start" type="text" placeholder="2027-01-01" />
+        </label>
+        <label>Batas akhir
+          <input id="manual-deadline" type="text" placeholder="2027-05-31" />
+        </label>
+        <label class="span-two">Deskripsi
+          <textarea id="manual-description" rows="3" placeholder="Ringkasan beasiswa (data sintetis)"></textarea>
+        </label>
+      </div>
+
+      <h3>Tag (minimal satu)</h3>
+      <div id="manual-tags" class="builder-list"></div>
+      <button id="btn-add-manual-tag" class="btn tiny" type="button">+ Tambah tag</button>
+
+      <h3>Persyaratan</h3>
+      <p class="hint">Persyaratan wajib menggugurkan kelayakan; persyaratan opsional hanya nilai tambah.</p>
+      <div id="manual-requirements" class="builder-list"></div>
+      <button id="btn-add-manual-requirement" class="btn tiny" type="button">+ Tambah persyaratan</button>
+
+      <div class="row">
+        <button id="btn-save-manual" class="btn primary" type="button">Simpan &amp; Kirim ke Verifikasi</button>
+        <span id="manual-status" class="muted small"></span>
+      </div>
+    </section>
+
+
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/admin-manual.js"></script>
+  <script src="js/admin-new.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+flowchart TD
+  A["Operasi AI dipanggil"] --> B{"Mode = mock?"}
+  B -->|"ya"| M["MockAIProvider (tanpa jaringan)"]
+  B -->|"tidak"| C{"Konfigurasi LLM lengkap?"}
+  C -->|"tidak"| C1{"Fallback aktif?"}
+  C1 -->|"ya"| M2["mock, mode=mock_fallback, reason=missing_config"]
+  C1 -->|"tidak"| E1["503 ai_unavailable"]
+  C -->|"ya"| D["Request ke LLM (timeout + retry terbatas)"]
+  D --> D1{"Sukses & lolos validasi?"}
+  D1 -->|"ya"| OK["Hasil, mode=llm"]
+  D1 -->|"tidak"| F{"Timeout / HTTP error / JSON invalid / slug asing"}
+  F -->|"fallback aktif"| M3["mock, mode=mock_fallback, reason=timeout provider_error invalid_output"]
+  F -->|"fallback mati"| E1

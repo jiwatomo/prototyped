@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lengkapi Profil — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="student">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Lengkapi profilmu</h1>
+      <p class="muted small">Satu kali pengiriman profil — setelah itu langsung ke rekomendasi.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <main class="container stack-narrow">
+    <section class="card">
+      <h2>1. Ceritakan tentang dirimu</h2>
+      <label for="description">Deskripsi bebas</label>
+      <textarea id="description" rows="8" placeholder="Contoh: Saya mahasiswa S1 Informatika semester 4 di Palembang dengan IPK 3,45..."></textarea>
+      <p class="hint">
+        Deskripsi ini dapat diproses oleh penyedia LLM yang dikonfigurasi. Jangan memasukkan NIK, NISN,
+        nomor telepon, alamat rumah, atau data pribadi lain yang tidak diperlukan.
+      </p>
+      <div class="row">
+        <button id="btn-analyze" class="btn primary" type="button">Analisis Profil dengan AI</button>
+        <span id="profile-status" class="muted small" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <section class="card" id="analysis-card" hidden>
+      <h2>2. Tinjau fakta</h2>
+      <p class="hint" id="analysis-intro">
+        Fakta di bawah belum dipakai sampai kamu menekan <strong>Kirim Profil</strong>.
+        Kosongkan nilai yang tidak benar atau tidak disebutkan.
+        <span id="analysis-provider"></span>
+      </p>
+      <div class="facts-grid">
+        <label>Jenjang
+          <select id="fact-education_level">
+            <option value="">Belum diisi</option>
+            <option>SMA</option><option>SMK</option><option>D3</option>
+            <option>D4</option><option>S1</option><option>S2</option><option>S3</option>
+          </select>
+        </label>
+        <label>Jurusan
+          <input id="fact-major" type="text" placeholder="Belum diisi" />
+        </label>
+        <label>Institusi
+          <input id="fact-institution" type="text" placeholder="Belum diisi" />
+        </label>
+        <label>IPK
+          <input id="fact-gpa" type="number" step="0.01" min="0" max="4" placeholder="Belum diisi" />
+        </label>
+        <label>Domisili
+          <input id="fact-domicile" type="text" placeholder="Belum diisi" />
+        </label>
+        <label>Jenis tes bahasa
+          <select id="fact-toefl_type">
+            <option value="">Belum diisi</option>
+            <option>ITP</option><option>iBT</option><option>PBT</option>
+          </select>
+        </label>
+        <label>Skor TOEFL
+          <input id="fact-toefl_score" type="number" min="0" max="677" placeholder="Belum diisi" />
+        </label>
+        <label class="span-two">Prestasi (satu per baris)
+          <textarea id="fact-achievements" rows="3" placeholder="Belum diisi"></textarea>
+        </label>
+      </div>
+
+      <div class="notice">
+        Fakta yang kamu kirim hanya bisa dikirim <strong>satu kali</strong>. Setelah itu kamu langsung
+        diarahkan ke halaman rekomendasi. Nilai fakta masih bisa diperbaiki di sana tanpa memanggil AI.
+      </div>
+      <button id="btn-confirm" class="btn primary" type="button">Kirim Profil</button>
+    </section>
+
+    <section class="card">
+      <h2>Setelah dikirim</h2>
+      <ol class="steps">
+        <li>Profil yang kamu kirim langsung dipakai untuk mencocokkan beasiswa.</li>
+        <li>Persyaratan dievaluasi deterministik: terpenuhi, belum terpenuhi, atau belum diketahui.</li>
+        <li>Kamu bisa memperbaiki nilai fakta (mis. IPK atau skor TOEFL) di halaman rekomendasi.</li>
+      </ol>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>

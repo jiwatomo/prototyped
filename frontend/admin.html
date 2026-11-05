@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Admin — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="admin">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Dashboard admin</h1>
+      <p class="muted small">Ringkasan katalog, pengguna, dan antrean verifikasi.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <nav class="admin-nav" aria-label="Navigasi admin">
+    <a href="admin.html" class="is-active">Dashboard</a>
+    <a href="admin-users.html">Pengguna</a>
+    <a href="admin-scholarships.html">Beasiswa</a>
+    <a href="admin-new-scholarship.html">Tambah beasiswa</a>
+  </nav>
+
+  <main class="container stack">
+    <section class="stat-grid">
+      <div class="stat-card">
+        <span class="stat-label">Pengguna</span>
+        <span class="stat-value" id="stat-users">—</span>
+        <span class="stat-hint" id="stat-users-hint"></span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Beasiswa terverifikasi</span>
+        <span class="stat-value" id="stat-verified">—</span>
+        <span class="stat-hint" id="stat-verified-hint"></span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Menunggu verifikasi</span>
+        <span class="stat-value" id="stat-pending">—</span>
+        <span class="stat-hint" id="stat-pending-hint"></span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Ekstraksi</span>
+        <span class="stat-value" id="stat-extractions">—</span>
+        <span class="stat-hint" id="stat-extractions-hint"></span>
+      </div>
+    </section>
+
+    <section class="action-grid">
+      <a class="card action-card" href="admin-users.html">
+        <h2>Kelola pengguna</h2>
+        <p class="muted small">Tambah akun pengguna/admin dan reset kata sandi.</p>
+        <span class="action-cta">Buka →</span>
+      </a>
+      <a class="card action-card" href="admin-new-scholarship.html">
+        <h2>Tambah beasiswa</h2>
+        <p class="muted small">Ekstraksi dari URL/teks/PDF atau input manual.</p>
+        <span class="action-cta">Buka →</span>
+      </a>
+      <a class="card action-card" href="admin-scholarships.html">
+        <h2>Kelola beasiswa</h2>
+        <p class="muted small">Edit, setujui, atau tolak data katalog.</p>
+        <span class="action-cta">Buka →</span>
+      </a>
+    </section>
+
+    <section class="card">
+      <div class="row space-between">
+        <h2>Antrean verifikasi</h2>
+        <a class="btn tiny" href="admin-scholarships.html?status=pending_verification">Lihat semua</a>
+      </div>
+      <ul id="pending-list" class="tag-list compact"></ul>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/admin-dashboard.js"></script>
+</body>
+</html>

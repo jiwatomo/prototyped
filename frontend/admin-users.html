@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kelola Pengguna — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="admin">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Kelola pengguna</h1>
+      <p class="muted small">Tambah akun demo dan reset kata sandi.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <nav class="admin-nav" aria-label="Navigasi admin">
+    <a href="admin.html">Dashboard</a>
+    <a href="admin-users.html" class="is-active">Pengguna</a>
+    <a href="admin-scholarships.html">Beasiswa</a>
+    <a href="admin-new-scholarship.html">Tambah beasiswa</a>
+  </nav>
+
+  <main class="container stack">
+    <section class="card">
+      <h2>Tambah pengguna</h2>
+      <p class="hint">
+        Akun demo untuk pengguna atau admin. Kata sandi minimal 8 karakter dan disimpan sebagai hash.
+      </p>
+      <div class="facts-grid">
+        <label>Username *
+          <input id="new-username" type="text" placeholder="siswa.baru" autocomplete="off" />
+        </label>
+        <label>Nama tampilan
+          <input id="new-display-name" type="text" placeholder="Siswa Baru" />
+        </label>
+        <label>Peran
+          <select id="new-role">
+            <option value="student">Pengguna</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <label>Kata sandi *
+          <input id="new-password" type="text" placeholder="minimal 8 karakter" autocomplete="off" />
+        </label>
+      </div>
+      <div class="row">
+        <button id="btn-create-user" class="btn primary" type="button">Simpan pengguna</button>
+        <span id="create-status" class="muted small"></span>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row space-between">
+        <h2>Daftar pengguna</h2>
+        <button id="btn-reload-users" class="btn tiny" type="button">Muat ulang</button>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Profil</th><th></th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="reset-card" hidden>
+      <h2>Reset kata sandi</h2>
+      <p class="muted small" id="reset-target"></p>
+      <label for="reset-password">Kata sandi baru (kosongkan untuk dibuat otomatis)</label>
+      <input id="reset-password" type="text" placeholder="minimal 8 karakter" autocomplete="off" />
+      <div class="row">
+        <button id="btn-reset-password" class="btn primary" type="button">Simpan kata sandi baru</button>
+        <button id="btn-cancel-reset" class="btn" type="button">Batal</button>
+      </div>
+      <div id="reset-result" class="warnings"></div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/admin-users.js"></script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kelola Beasiswa — BeasiswaMatch</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-page-role="admin">
+  <header class="app-header">
+    <div class="brand">
+      <a class="brand-link" href="index.html">← Beranda</a>
+      <h1>Kelola beasiswa</h1>
+      <p class="muted small">Edit data, tinjau tag, lalu setujui atau tolak.</p>
+    </div>
+    <div class="header-right">
+      <span id="provider-badge" class="badge badge-neutral">Memuat status AI…</span>
+      <span id="session-user" class="session-chip" hidden></span>
+      <button id="btn-logout" class="btn tiny" type="button" hidden>Keluar</button>
+    </div>
+  </header>
+
+  <div class="banner">DATA DEMO SINTETIS — BUKAN INFORMASI BEASISWA NYATA</div>
+
+  <nav class="admin-nav" aria-label="Navigasi admin">
+    <a href="admin.html">Dashboard</a>
+    <a href="admin-users.html">Pengguna</a>
+    <a href="admin-scholarships.html" class="is-active">Beasiswa</a>
+    <a href="admin-new-scholarship.html">Tambah beasiswa</a>
+  </nav>
+
+  <main class="container stack">
+    <section class="card">
+      <div class="filter-row">
+        <label class="filter-field">Status
+          <select id="filter-status">
+            <option value="">Semua status</option>
+            <option value="verified">verified</option>
+            <option value="pending_verification">pending_verification</option>
+            <option value="rejected">rejected</option>
+            <option value="draft">draft</option>
+          </select>
+        </label>
+        <label class="filter-field">Cari
+          <input id="filter-search" type="search" placeholder="nama atau penyelenggara" />
+        </label>
+        <button id="btn-apply-filter" class="btn primary" type="button">Terapkan</button>
+        <span id="list-count" class="muted small"></span>
+      </div>
+    </section>
+
+    <section class="card" id="submissions-card">
+      <div class="row space-between">
+        <h2>Kiriman pengguna (screenshot)</h2>
+        <span id="submission-count" class="muted small"></span>
+      </div>
+      <p class="hint">
+        Tidak ada OCR: buka gambarnya, lalu tambahkan datanya lewat menu <strong>Tambah beasiswa</strong>
+        bila valid. Tandai <em>diproses</em> setelah ditambahkan.
+      </p>
+      <ul id="submission-list" class="tag-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Daftar beasiswa</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>Nama</th><th>Status</th><th>Tag</th><th>Persyaratan</th><th>Batas akhir</th><th></th></tr>
+          </thead>
+          <tbody id="scholarship-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="detail-card" hidden>
+      <div class="row space-between">
+        <h2 id="detail-title">Detail beasiswa</h2>
+        <span id="detail-meta" class="muted small"></span>
+      </div>
+      <div id="detail-warning" class="warnings"></div>
+
+      <div class="facts-grid">
+        <label>Nama
+          <input id="sch-name" type="text" />
+        </label>
+        <label>Penyelenggara
+          <input id="sch-organizer" type="text" />
+        </label>
+        <label>Jenjang (pisahkan koma)
+          <input id="sch-levels" type="text" placeholder="S1, SMA" />
+        </label>
+        <label>Manfaat (pisahkan koma)
+          <input id="sch-benefits" type="text" placeholder="Biaya pendidikan" />
+        </label>
+        <label>Mulai pendaftaran
+          <input id="sch-start" type="text" placeholder="2027-01-01" />
+        </label>
+        <label>Batas akhir
+          <input id="sch-deadline" type="text" placeholder="2027-05-31" />
+        </label>
+        <label class="span-two">Deskripsi
+          <textarea id="sch-description" rows="3"></textarea>
+        </label>
+      </div>
+
+      <h3>Tag</h3>
+      <ul id="sch-tags" class="tag-list"></ul>
+
+      <h3>Persyaratan</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Deskripsi</th><th>Field/Tag</th><th>Operator</th><th>Nilai</th><th>Wajib</th><th>Grup</th></tr></thead>
+          <tbody id="sch-requirements"></tbody>
+        </table>
+      </div>
+
+      <h3>Riwayat keputusan</h3>
+      <ul id="sch-history" class="tag-list compact"></ul>
+
+      <label for="sch-reject-reason">Alasan penolakan (wajib jika menolak)</label>
+      <input id="sch-reject-reason" type="text" placeholder="Contoh: sumber tidak kredibel" />
+      <div class="row">
+        <button id="btn-save-scholarship" class="btn" type="button">Simpan perubahan</button>
+        <button id="btn-approve-scholarship" class="btn primary" type="button">Setujui beasiswa</button>
+        <button id="btn-reject-scholarship" class="btn danger" type="button">Tolak</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/admin-scholarships.js"></script>
+</body>
+</html>

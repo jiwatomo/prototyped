@@ -1,0 +1,19 @@
+flowchart TD
+  A["HTTP request"] --> B{"Origin diizinkan CORS?"}
+  B -->|"tidak"| B1["Ditolak browser"]
+  B -->|"ya"| C["Router cocok?"]
+  C -->|"tidak"| C1["404 not_found"]
+  C -->|"ya"| D{"Endpoint publik?"}
+  D -->|"ya"| H["Handler"]
+  D -->|"tidak"| E{"Header Authorization ada?"}
+  E -->|"tidak"| E1["401 unauthenticated"]
+  E -->|"ya"| F{"Sesi valid?"}
+  F -->|"tidak"| F1["401 unauthenticated"]
+  F -->|"kedaluwarsa"| F2["401 session_expired"]
+  F -->|"ya"| G{"Role / kepemilikan cukup?"}
+  G -->|"tidak"| G1["403 forbidden"]
+  G -->|"ya"| H["Handler"]
+  H --> I["Service + SQLAlchemy"]
+  I --> J{"ServiceError?"}
+  J -->|"ya"| J1["JSON detail + code, status sesuai"]
+  J -->|"tidak"| K["200/201 JSON"]
